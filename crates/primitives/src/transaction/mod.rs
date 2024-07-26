@@ -11,9 +11,10 @@ use alloy_rlp::{
 use bytes::Buf;
 use core::mem;
 use derive_more::{AsRef, Deref};
-use once_cell::sync::Lazy;
 use rayon::prelude::{IntoParallelIterator, ParallelIterator};
 use serde::{Deserialize, Serialize};
+#[cfg(feature = "std")]
+use std::sync::LazyLock;
 
 pub use access_list::{AccessList, AccessListItem};
 pub use eip1559::TxEip1559;
@@ -69,15 +70,15 @@ pub use tx_type::DEPOSIT_TX_TYPE_ID;
 use reth_codecs::Compact;
 
 #[cfg(not(feature = "std"))]
-use alloc::vec::Vec;
+use alloc::{sync::LazyLock, vec::Vec};
 
 /// Either a transaction hash or number.
 pub type TxHashOrNumber = BlockHashOrNumber;
 
 // Expected number of transactions where we can expect a speed-up by recovering the senders in
 // parallel.
-pub(crate) static PARALLEL_SENDER_RECOVERY_THRESHOLD: Lazy<usize> =
-    Lazy::new(|| match rayon::current_num_threads() {
+pub(crate) static PARALLEL_SENDER_RECOVERY_THRESHOLD: LazyLock<usize> =
+    LazyLock::new(|| match rayon::current_num_threads() {
         0..=1 => usize::MAX,
         2..=8 => 10,
         _ => 5,
